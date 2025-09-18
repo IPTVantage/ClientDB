@@ -47,71 +47,75 @@ bot.start((ctx) => {
   );
 });
 
-// ===== ADD CLIENT =====
-let addStep = {};
+// ===== STATE =====
+let addStep = {};     // track users in "add client" process
+let searchStep = {};  // track users in "search client" process
 
+// ===== ADD CLIENT =====
 bot.hears('➕ Add Client', (ctx) => {
   addStep[ctx.from.id] = { step: 'name' };
   ctx.reply('Please enter the client name (required):');
 });
 
-bot.on('text', async (ctx) => {
-  const step = addStep[ctx.from.id];
-
-  // Step 1: Get name
-  if (step && step.step === 'name') {
-    step.name = ctx.message.text.trim();
-    step.step = 'telegramId';
-    ctx.reply('Now enter the Telegram ID (optional, or type "-" to skip):');
-    return;
-  }
-
-  // Step 2: Get Telegram ID
-  if (step && step.step === 'telegramId') {
-    const telegramId = ctx.message.text.trim() === '-' ? null : ctx.message.text.trim();
-
-    const newClient = new Client({
-      name: step.name,
-      telegramId,
-      uniqueId: makeShortId(),
-    });
-
-    try {
-      await newClient.save();
-      ctx.reply(
-        `✅ Client Added:\n\n` +
-        `👤 Name: ${newClient.name}\n` +
-        `💬 Telegram ID: ${newClient.telegramId || 'N/A'}\n`+
-        `\n🆔 Unique ID:\t\`${newClient.uniqueId}\``,
-        { parse_mode: 'Markdown' }
-      );
-    } catch (err) {
-      ctx.reply('❌ Error saving client (maybe duplicate ID). Try again.');
-      console.error(err);
-    }
-
-    delete addStep[ctx.from.id];
-    return;
-  }
-});
-
 // ===== SEARCH CLIENT =====
-let searchStep = {};
-
 bot.hears('🔍 Search Client', (ctx) => {
   searchStep[ctx.from.id] = true;
   ctx.reply('Enter Name, Telegram ID, or Unique ID to search:');
 });
 
+// ===== TEXT HANDLER =====
 bot.on('text', async (ctx) => {
-  if (searchStep[ctx.from.id]) {
-    const query = ctx.message.text.trim();
+  const userId = ctx.from.id;
+  const text = ctx.message.text.trim();
 
+  // ===== ADD CLIENT =====
+  if (addStep[userId]) {
+    const step = addStep[userId];
+
+    if (step.step === 'name') {
+      step.name = text;
+      step.step = 'telegramId';
+      return ctx.reply('Now enter the Telegram ID (optional, or type "-" to skip):');
+    }
+
+    if (step.step === 'telegramId') {
+      const telegramId = text === '-' ? null : text;
+
+      const newClient = new Client({
+        name: step.name,
+        telegramId,
+        uniqueId: makeShortId(),
+      });
+
+      try {
+        await newClient.save();
+
+        // Message 1: client info
+        ctx.reply(
+          `✅ Client Added:\n\n` +
+          `👤 Name: ${newClient.name}\n` +
+          `💬 Telegram ID: ${newClient.telegramId || 'N/A'}` +
+          `\n🆔 Unique ID:\t \`${newClient.uniqueId}\``,
+          { parse_mode: 'Markdown' }
+        );
+
+      } catch (err) {
+        ctx.reply('❌ Error saving client. Maybe duplicate ID. Try again.');
+        console.error(err);
+      }
+
+      delete addStep[userId];
+      return;
+    }
+  }
+
+  // ===== SEARCH CLIENT =====
+  if (searchStep[userId]) {
     const client = await Client.findOne({
       $or: [
-        { name: query },
-        { telegramId: query },
-        { uniqueId: query },
+        { name: text },
+        { telegramId: text },
+        { uniqueId: text },
       ],
     });
 
@@ -120,13 +124,15 @@ bot.on('text', async (ctx) => {
         `📌 Client Found:\n\n` +
         `👤 Name: ${client.name}\n` +
         `💬 Telegram ID: ${client.telegramId || 'N/A'}\n` +
-        `🆔 Unique ID: ${client.uniqueId}`
+        `\n🆔 Unique ID:\t \`${client.uniqueId}\``,
+        { parse_mode: 'Markdown' }
       );
     } else {
       ctx.reply('❌ No client found.');
     }
 
-    delete searchStep[ctx.from.id];
+    delete searchStep[userId];
+    return;
   }
 });
 
