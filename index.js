@@ -60,7 +60,7 @@ bot.hears('➕ Add Client', (ctx) => {
 // ===== SEARCH CLIENT =====
 bot.hears('🔍 Search Client', (ctx) => {
   searchStep[ctx.from.id] = true;
-  ctx.reply('Enter Name, Telegram ID, or Unique ID to search:');
+  ctx.reply('Enter Name, Telegram ID, or VID to search:');
 });
 
 // ===== TEXT HANDLER =====
@@ -95,7 +95,7 @@ bot.on('text', async (ctx) => {
           `✅ Client Added:\n\n` +
           `👤 Name: ${newClient.name}\n` +
           `💬 Telegram ID: ${newClient.telegramId || 'N/A'}` +
-          `\n🆔 Unique ID:\t \`${newClient.uniqueId}\``,
+          `\n🆔 VID:\t \`${newClient.uniqueId}\``,
           { parse_mode: 'Markdown' }
         );
 
@@ -124,7 +124,7 @@ bot.on('text', async (ctx) => {
         `📌 Client Found:\n\n` +
         `👤 Name: ${client.name}\n` +
         `💬 Telegram ID: ${client.telegramId || 'N/A'}\n` +
-        `\n🆔 Unique ID:\t \`${client.uniqueId}\``,
+        `\n🆔 VID:\t \`${client.uniqueId}\``,
         { parse_mode: 'Markdown' }
       );
     } else {
